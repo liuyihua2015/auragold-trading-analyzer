@@ -30,6 +30,8 @@ export const translations = {
       renamePlaceholder: "Enter new name for ledger",
       defaultName: "General Ledger",
       masterName: "Master Ledger",
+      confirm: "Confirm",
+      cancel: "Cancel",
     },
     stats: {
       totalProfit: "Current Total Profit",

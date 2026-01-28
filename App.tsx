@@ -3,6 +3,7 @@ import { TradeRecord, TradeSummary, Ledger } from "./types";
 import { TradeForm } from "./components/TradeForm";
 import { StatsCards } from "./components/StatsCards";
 import { InputModal } from "./components/InputModal";
+import { ConfirmModal } from "./components/ConfirmModal";
 import { analyzeTrades } from "./services/geminiService";
 import { translations, Language } from "./translations";
 
@@ -59,7 +60,10 @@ export default function App() {
     if (savedActive && savedLedgers) {
       try {
         const parsed = JSON.parse(savedLedgers);
-        if (savedActive === "master" || parsed.some((l: Ledger) => l.id === savedActive)) {
+        if (
+          savedActive === "master" ||
+          parsed.some((l: Ledger) => l.id === savedActive)
+        ) {
           return savedActive;
         }
       } catch (e) {}
@@ -80,6 +84,9 @@ export default function App() {
     isOpen: false,
     type: "create",
     initialValue: "",
+  });
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; targetId?: string }>({
+    isOpen: false,
   });
 
   // Sync to Storage whenever state changes
@@ -153,15 +160,11 @@ export default function App() {
   };
 
   const removeRecord = (id: string) => {
-    if (window.confirm(t.confirmDelete)) {
-      setLedgers((prev) =>
-        prev.map((l) =>
-          l.id === activeLedgerId
-            ? { ...l, records: l.records.filter((r) => r.id !== id) }
-            : l,
-        ),
-      );
-    }
+    setLedgers((prev) =>
+      prev.map((l) =>
+        l.id === activeLedgerId ? { ...l, records: l.records.filter((r) => r.id !== id) } : l,
+      ),
+    );
   };
 
   const clearActiveLedger = () => {
@@ -248,7 +251,9 @@ export default function App() {
   const shareReport = () => {
     const rt = t.report;
     const name =
-      activeLedgerId === "master" ? t.ledgers.masterName : activeLedger?.name || t.ledger;
+      activeLedgerId === "master"
+        ? t.ledgers.masterName
+        : activeLedger?.name || t.ledger;
     const count =
       activeLedgerId === "master"
         ? ledgers.reduce((acc, l) => acc + l.records.length, 0)
@@ -500,7 +505,9 @@ ${rt.date}: ${new Date().toLocaleString()}
             <button
               onClick={clearActiveLedger}
               className={`text-[var(--muted-2)] text-xs font-bold uppercase tracking-widest transition-colors p-2 ${
-                activeLedgerId === "master" ? "opacity-40 cursor-not-allowed" : "hover:text-rose-500"
+                activeLedgerId === "master"
+                  ? "opacity-40 cursor-not-allowed"
+                  : "hover:text-rose-500"
               }`}
             >
               {t.clearData}
@@ -604,7 +611,9 @@ ${rt.date}: ${new Date().toLocaleString()}
               <div className="p-6 border-b border-[var(--border)] bg-[var(--panel)] sticky top-0 z-20 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-[var(--text)]">
-                    {activeLedgerId === "master" ? t.ledgers.masterName : activeLedger?.name || t.ledger}
+                    {activeLedgerId === "master"
+                      ? t.ledgers.masterName
+                      : activeLedger?.name || t.ledger}
                   </h2>
                   <p className="text-xs text-[var(--muted-2)] font-mono">
                     {t.ledgerSub}
@@ -619,124 +628,107 @@ ${rt.date}: ${new Date().toLocaleString()}
               </div>
 
               {activeLedgerId !== "master" && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[var(--panel-2)] text-[var(--muted-2)] text-[10px] font-black uppercase tracking-widest">
-                      <th className="px-6 py-4 border-b border-[var(--border)]">
-                        {t.table.timeline}
-                      </th>
-                      <th className="px-6 py-4 border-b border-[var(--border)] text-center">
-                        {t.table.volume}
-                      </th>
-                      <th className="px-6 py-4 border-b border-[var(--border)]">
-                        {t.table.rate}
-                      </th>
-                      <th className="px-6 py-4 border-b border-[var(--border)]">
-                        {t.table.actualNet}
-                      </th>
-                      <th className="px-6 py-4 border-b border-[var(--border)]">
-                        {t.table.projectedNet}
-                      </th>
-                      <th className="px-6 py-4 border-b border-[var(--border)]"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
-                    {(activeLedger?.records || []).map((record) => (
-                      <tr
-                        key={record.id}
-                        className="hover:bg-[var(--row-hover)] transition-all group"
-                      >
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <div className="text-sm text-[var(--text)] font-semibold">
-                            {new Date(record.timestamp).toLocaleDateString()}
-                          </div>
-                          <div className="text-[10px] text-[var(--muted-2)] font-mono">
-                            {new Date(record.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center">
-                          <div className="text-sm font-black text-amber-400/80">
-                            {record.grams.toFixed(2)}g
-                          </div>
-                          <div className="text-[9px] text-[var(--muted-2)] uppercase font-bold tracking-tighter">
-                            {(record.handlingFeeRate * 100).toFixed(2)}%{" "}
-                            {t.table.fee}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs text-rose-400 font-mono">
-                              {t.table.cost}: ${record.costPrice.toFixed(2)}
-                            </span>
-                            <span className="text-xs text-emerald-400 font-mono font-bold">
-                              {t.table.sell}: ${record.sellingPrice.toFixed(2)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div
-                            className={`text-sm font-black font-mono ${record.actualProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                          >
-                            $
-                            {record.actualProfit.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter opacity-70">
-                              {t.table.target}: $
-                              {record.desiredPrice.toFixed(2)}
-                            </span>
-                            <span className="text-sm font-black text-blue-300 font-mono">
-                              $
-                              {record.projectedProfit.toLocaleString(
-                                undefined,
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[var(--panel-2)] text-[var(--muted-2)] text-[10px] font-black uppercase tracking-widest">
+                        <th className="px-6 py-4 border-b border-[var(--border)]">
+                          {t.table.timeline}
+                        </th>
+                        <th className="px-6 py-4 border-b border-[var(--border)] text-center">
+                          {t.table.volume}
+                        </th>
+                        <th className="px-6 py-4 border-b border-[var(--border)]">
+                          {t.table.rate}
+                        </th>
+                        <th className="px-6 py-4 border-b border-[var(--border)]">
+                          {t.table.actualNet}
+                        </th>
+                        <th className="px-6 py-4 border-b border-[var(--border)]">
+                          {t.table.projectedNet}
+                        </th>
+                        <th className="px-6 py-4 border-b border-[var(--border)]"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {(activeLedger?.records || []).map((record) => (
+                        <tr
+                          key={record.id}
+                          className="hover:bg-[var(--row-hover)] transition-all group"
+                        >
+                          <td className="px-6 py-5 whitespace-nowrap">
+                            <div className="text-sm text-[var(--text)] font-semibold">
+                              {new Date(record.timestamp).toLocaleDateString()}
+                            </div>
+                            <div className="text-[10px] text-[var(--muted-2)] font-mono">
+                              {new Date(record.timestamp).toLocaleTimeString(
+                                [],
                                 {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 },
                               )}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <button
-                            onClick={() => removeRecord(record.id)}
-                            className="text-[var(--muted-2)] hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition-all scale-90 hover:scale-110"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <div className="text-sm font-black text-amber-400/80">
+                              {record.grams.toFixed(2)}g
+                            </div>
+                            <div className="text-[9px] text-[var(--muted-2)] uppercase font-bold tracking-tighter">
+                              {(record.handlingFeeRate * 100).toFixed(2)}%{" "}
+                              {t.table.fee}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs text-rose-400 font-mono">
+                                {t.table.cost}: ${record.costPrice.toFixed(2)}
+                              </span>
+                              <span className="text-xs text-emerald-400 font-mono font-bold">
+                                {t.table.sell}: $
+                                {record.sellingPrice.toFixed(2)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div
+                              className={`text-sm font-black font-mono ${record.actualProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {(!activeLedger || activeLedger.records.length === 0) && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-24 text-center">
-                          <div className="flex flex-col items-center opacity-40">
-                            <div className="w-16 h-16 bg-[var(--panel-2)] rounded-full flex items-center justify-center mb-4">
+                              $
+                              {record.actualProfit.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter opacity-70">
+                                {t.table.target}: $
+                                {record.desiredPrice.toFixed(2)}
+                              </span>
+                              <span className="text-sm font-black text-blue-300 font-mono">
+                                $
+                                {record.projectedProfit.toLocaleString(
+                                  undefined,
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                )}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <button
+                            onClick={() => setDeleteModal({ isOpen: true, targetId: record.id })}
+                            className="text-[var(--muted-2)] hover:text-rose-500 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all scale-90 hover:scale-110"
+                            aria-label={lang === "zh" ? "删除记录" : "Delete record"}
+                            title={t.confirmDelete}
+                            >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-[var(--muted)]"
+                                className="h-5 w-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -744,21 +736,44 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
-                                  strokeWidth={1}
-                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m3.12-1.45a2.35 2.35 0 010-4.51m-6.24 4.51a2.35 2.35 0 010-4.51"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                 />
                               </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {(!activeLedger || activeLedger.records.length === 0) && (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-24 text-center">
+                            <div className="flex flex-col items-center opacity-40">
+                              <div className="w-16 h-16 bg-[var(--panel-2)] rounded-full flex items-center justify-center mb-4">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-8 w-8 text-[var(--muted)]"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1}
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m3.12-1.45a2.35 2.35 0 010-4.51m-6.24 4.51a2.35 2.35 0 010-4.51"
+                                  />
+                                </svg>
+                              </div>
+                              <p className="text-[var(--muted)] font-bold uppercase tracking-widest text-xs">
+                                {t.noRecords}
+                              </p>
                             </div>
-                            <p className="text-[var(--muted)] font-bold uppercase tracking-widest text-xs">
-                              {t.noRecords}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -797,6 +812,18 @@ ${rt.date}: ${new Date().toLocaleString()}
         }
         onConfirm={handleModalConfirm}
         onCancel={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        confirmText={t.ledgers.confirm}
+        cancelText={t.ledgers.cancel}
+      />
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title={lang === "zh" ? "删除交易记录" : "Delete Trade Record"}
+        message={t.confirmDelete}
+        onCancel={() => setDeleteModal({ isOpen: false })}
+        onConfirm={() => {
+          if (deleteModal.targetId) removeRecord(deleteModal.targetId);
+          setDeleteModal({ isOpen: false });
+        }}
         confirmText={t.ledgers.confirm}
         cancelText={t.ledgers.cancel}
       />
