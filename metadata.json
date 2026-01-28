@@ -1,0 +1,5 @@
+{
+  "name": "AuraGold Trading Analyzer",
+  "description": "A sophisticated gold trading management system featuring real-time profit calculations, handling fee analysis, and AI-driven investment insights using Gemini.",
+  "requestFramePermissions": []
+}
