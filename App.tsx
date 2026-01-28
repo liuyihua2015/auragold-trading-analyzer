@@ -59,7 +59,7 @@ export default function App() {
     if (savedActive && savedLedgers) {
       try {
         const parsed = JSON.parse(savedLedgers);
-        if (parsed.some((l: Ledger) => l.id === savedActive)) {
+        if (savedActive === "master" || parsed.some((l: Ledger) => l.id === savedActive)) {
           return savedActive;
         }
       } catch (e) {}
@@ -108,7 +108,10 @@ export default function App() {
   );
 
   const summary = useMemo<TradeSummary>(() => {
-    const records = activeLedger?.records || [];
+    const records =
+      activeLedgerId === "master"
+        ? ledgers.flatMap((l) => l.records)
+        : activeLedger?.records || [];
     if (records.length === 0)
       return {
         totalProfit: 0,
@@ -138,9 +141,10 @@ export default function App() {
       avgCostPrice,
       profitDifference,
     };
-  }, [activeLedger]);
+  }, [activeLedger, activeLedgerId, ledgers]);
 
   const addRecord = (record: TradeRecord) => {
+    if (activeLedgerId === "master") return;
     setLedgers((prev) =>
       prev.map((l) =>
         l.id === activeLedgerId ? { ...l, records: [record, ...l.records] } : l,
@@ -161,6 +165,7 @@ export default function App() {
   };
 
   const clearActiveLedger = () => {
+    if (activeLedgerId === "master") return;
     if (window.confirm(t.confirmClear)) {
       setLedgers((prev) =>
         prev.map((l) => (l.id === activeLedgerId ? { ...l, records: [] } : l)),
@@ -241,16 +246,21 @@ export default function App() {
   };
 
   const shareReport = () => {
-    if (!activeLedger) return;
     const rt = t.report;
+    const name =
+      activeLedgerId === "master" ? t.ledgers.masterName : activeLedger?.name || t.ledger;
+    const count =
+      activeLedgerId === "master"
+        ? ledgers.reduce((acc, l) => acc + l.records.length, 0)
+        : activeLedger?.records.length || 0;
     const report = `
-[${activeLedger.name}] ${rt.title}
+[${name}] ${rt.title}
 -----------------------------------
 - ${rt.actual}: ￥${summary.totalProfit.toFixed(2)}
 - ${rt.projected}: ￥${summary.totalProjectedProfit.toFixed(2)}
 - ${rt.diff}: ￥${summary.profitDifference.toFixed(2)}
 - ${rt.volume}: ${summary.totalGrams.toFixed(2)}g
-- ${rt.count}: ${activeLedger.records.length}
+- ${rt.count}: ${count}
 -----------------------------------
 ${rt.date}: ${new Date().toLocaleString()}
     `.trim();
@@ -262,6 +272,7 @@ ${rt.date}: ${new Date().toLocaleString()}
   };
 
   const runAnalysis = async () => {
+    if (activeLedgerId === "master") return;
     setIsAnalyzing(true);
     const result = await analyzeTrades(activeLedger?.records || [], lang);
     setAiAnalysis(result);
@@ -309,6 +320,34 @@ ${rt.date}: ${new Date().toLocaleString()}
           </div>
 
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div
+              className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${
+                activeLedgerId === "master"
+                  ? "bg-amber-500/10 border-amber-500/50"
+                  : "bg-[var(--panel-2)] border-transparent hover:border-[var(--border-2)]"
+              }`}
+              onClick={() => setActiveLedgerId("master")}
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div
+                  className={`w-2 h-2 flex-shrink-0 rounded-full ${
+                    activeLedgerId === "master"
+                      ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                      : "bg-[var(--border-2)]"
+                  }`}
+                ></div>
+                <span
+                  className={`text-sm font-bold truncate ${
+                    activeLedgerId === "master"
+                      ? "text-[var(--primary-text)]"
+                      : "text-[var(--muted)]"
+                  }`}
+                >
+                  {t.ledgers.masterName}
+                </span>
+              </div>
+              <div className="flex items-center gap-1"></div>
+            </div>
             {ledgers.map((l) => (
               <div
                 key={l.id}
@@ -460,7 +499,9 @@ ${rt.date}: ${new Date().toLocaleString()}
 
             <button
               onClick={clearActiveLedger}
-              className="text-[var(--muted-2)] hover:text-rose-500 text-xs font-bold uppercase tracking-widest transition-colors p-2"
+              className={`text-[var(--muted-2)] text-xs font-bold uppercase tracking-widest transition-colors p-2 ${
+                activeLedgerId === "master" ? "opacity-40 cursor-not-allowed" : "hover:text-rose-500"
+              }`}
             >
               {t.clearData}
             </button>
@@ -468,6 +509,7 @@ ${rt.date}: ${new Date().toLocaleString()}
             <button
               onClick={runAnalysis}
               disabled={
+                activeLedgerId === "master" ||
                 !activeLedger ||
                 activeLedger.records.length === 0 ||
                 isAnalyzing
@@ -510,7 +552,20 @@ ${rt.date}: ${new Date().toLocaleString()}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-            <TradeForm onAdd={addRecord} lang={lang} />
+            {activeLedgerId !== "master" ? (
+              <TradeForm onAdd={addRecord} lang={lang} />
+            ) : (
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-2xl">
+                <h2 className="text-lg font-bold text-amber-600 mb-2">
+                  {t.ledgers.masterName}
+                </h2>
+                <p className="text-[var(--muted)] text-sm">
+                  {lang === "zh"
+                    ? "总账本仅展示所有账本的统计，不支持添加或编辑记录。"
+                    : "Master ledger shows global stats only; adding or editing records is disabled."}
+                </p>
+              </div>
+            )}
 
             {aiAnalysis && (
               <div className="bg-[var(--panel)] border border-amber-500/20 p-6 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-500">
@@ -549,17 +604,21 @@ ${rt.date}: ${new Date().toLocaleString()}
               <div className="p-6 border-b border-[var(--border)] bg-[var(--panel)] sticky top-0 z-20 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-[var(--text)]">
-                    {activeLedger?.name || t.ledger}
+                    {activeLedgerId === "master" ? t.ledgers.masterName : activeLedger?.name || t.ledger}
                   </h2>
                   <p className="text-xs text-[var(--muted-2)] font-mono">
                     {t.ledgerSub}
                   </p>
                 </div>
                 <span className="bg-[var(--chip-bg)] text-amber-600 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter">
-                  {activeLedger?.records.length || 0} {t.transactions}
+                  {activeLedgerId === "master"
+                    ? ledgers.reduce((acc, l) => acc + l.records.length, 0)
+                    : activeLedger?.records.length || 0}{" "}
+                  {t.transactions}
                 </span>
               </div>
 
+              {activeLedgerId !== "master" && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -700,6 +759,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
           </div>
         </div>

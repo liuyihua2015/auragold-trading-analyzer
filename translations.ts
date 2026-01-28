@@ -29,6 +29,7 @@ export const translations = {
       rename: "Rename Ledger",
       renamePlaceholder: "Enter new name for ledger",
       defaultName: "General Ledger",
+      masterName: "Master Ledger",
     },
     stats: {
       totalProfit: "Current Total Profit",
@@ -105,6 +106,7 @@ export const translations = {
       defaultName: "主账本",
       confirm: "确认",
       cancel: "取消",
+      masterName: "总账本",
     },
     stats: {
       totalProfit: "当前总利润",

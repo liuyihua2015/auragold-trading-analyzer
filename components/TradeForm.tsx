@@ -102,7 +102,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               name="grams"
               value={formData.grams}
               onChange={handleChange}
-              placeholder="5.00"
+              placeholder="0"
               className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
@@ -137,7 +137,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               name="costPrice"
               value={formData.costPrice}
               onChange={handleChange}
-              placeholder="1102.85"
+              placeholder="0"
               className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
@@ -153,7 +153,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               name="sellingPrice"
               value={formData.sellingPrice}
               onChange={handleChange}
-              placeholder="1128.37"
+              placeholder="0"
               className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>

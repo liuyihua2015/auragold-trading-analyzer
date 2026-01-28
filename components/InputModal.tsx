@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 interface InputModalProps {
   isOpen: boolean;
@@ -14,12 +14,12 @@ interface InputModalProps {
 export const InputModal: React.FC<InputModalProps> = ({
   isOpen,
   title,
-  initialValue = '',
-  placeholder = '',
+  initialValue = "",
+  placeholder = "",
   onConfirm,
   onCancel,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel'
+  confirmText = "Confirm",
+  cancelText = "Cancel",
 }) => {
   const [value, setValue] = useState(initialValue);
 
