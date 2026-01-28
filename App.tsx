@@ -85,7 +85,13 @@ export default function App() {
     type: "create",
     initialValue: "",
   });
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; targetId?: string }>({
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    targetId?: string;
+  }>({
+    isOpen: false,
+  });
+  const [clearModal, setClearModal] = useState<{ isOpen: boolean }>({
     isOpen: false,
   });
 
@@ -162,19 +168,19 @@ export default function App() {
   const removeRecord = (id: string) => {
     setLedgers((prev) =>
       prev.map((l) =>
-        l.id === activeLedgerId ? { ...l, records: l.records.filter((r) => r.id !== id) } : l,
+        l.id === activeLedgerId
+          ? { ...l, records: l.records.filter((r) => r.id !== id) }
+          : l,
       ),
     );
   };
 
   const clearActiveLedger = () => {
     if (activeLedgerId === "master") return;
-    if (window.confirm(t.confirmClear)) {
-      setLedgers((prev) =>
-        prev.map((l) => (l.id === activeLedgerId ? { ...l, records: [] } : l)),
-      );
-      setAiAnalysis("");
-    }
+    setLedgers((prev) =>
+      prev.map((l) => (l.id === activeLedgerId ? { ...l, records: [] } : l)),
+    );
+    setAiAnalysis("");
   };
 
   const handleModalConfirm = (value: string) => {
@@ -503,7 +509,10 @@ ${rt.date}: ${new Date().toLocaleString()}
             </button>
 
             <button
-              onClick={clearActiveLedger}
+              onClick={() => {
+                if (activeLedgerId === "master") return;
+                setClearModal({ isOpen: true });
+              }}
               className={`text-[var(--muted-2)] text-xs font-bold uppercase tracking-widest transition-colors p-2 ${
                 activeLedgerId === "master"
                   ? "opacity-40 cursor-not-allowed"
@@ -721,10 +730,17 @@ ${rt.date}: ${new Date().toLocaleString()}
                           </td>
                           <td className="px-6 py-5 text-right">
                             <button
-                            onClick={() => setDeleteModal({ isOpen: true, targetId: record.id })}
-                            className="text-[var(--muted-2)] hover:text-rose-500 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all scale-90 hover:scale-110"
-                            aria-label={lang === "zh" ? "删除记录" : "Delete record"}
-                            title={t.confirmDelete}
+                              onClick={() =>
+                                setDeleteModal({
+                                  isOpen: true,
+                                  targetId: record.id,
+                                })
+                              }
+                              className="text-[var(--muted-2)] hover:text-rose-500 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all scale-90 hover:scale-110"
+                              aria-label={
+                                lang === "zh" ? "删除记录" : "Delete record"
+                              }
+                              title={t.confirmDelete}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -823,6 +839,18 @@ ${rt.date}: ${new Date().toLocaleString()}
         onConfirm={() => {
           if (deleteModal.targetId) removeRecord(deleteModal.targetId);
           setDeleteModal({ isOpen: false });
+        }}
+        confirmText={t.ledgers.confirm}
+        cancelText={t.ledgers.cancel}
+      />
+      <ConfirmModal
+        isOpen={clearModal.isOpen}
+        title={lang === "zh" ? "清空当前账本" : "Clear Current Ledger"}
+        message={t.confirmClear}
+        onCancel={() => setClearModal({ isOpen: false })}
+        onConfirm={() => {
+          setClearModal({ isOpen: false });
+          clearActiveLedger();
         }}
         confirmText={t.ledgers.confirm}
         cancelText={t.ledgers.cancel}
