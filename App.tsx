@@ -21,6 +21,15 @@ export default function App() {
     return (saved as Language) || "zh";
   });
 
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const saved = localStorage.getItem("auragold_theme");
+    if (saved === "light" || saved === "dark") return saved;
+    const systemDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return systemDark ? "dark" : "light";
+  });
+
   const t = translations[lang];
 
   const [ledgers, setLedgers] = useState<Ledger[]>(() => {
@@ -87,6 +96,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("auragold_lang", lang);
   }, [lang]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("auragold_theme", theme);
+  }, [theme]);
 
   const activeLedger = useMemo(
     () => ledgers.find((l) => l.id === activeLedgerId) || ledgers[0],
@@ -258,11 +272,15 @@ ${rt.date}: ${new Date().toLocaleString()}
     setLang((prev) => (prev === "en" ? "zh" : "en"));
   };
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
   return (
     <div className="min-h-screen pb-20 p-4 md:p-8 max-w-7xl mx-auto selection:bg-amber-500/30 flex flex-col lg:flex-row gap-8">
       {/* Sidebar/Ledger Selector */}
       <aside className="lg:w-64 flex-shrink-0">
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 sticky top-8">
+        <div className="bg-[var(--panel)] border border-[var(--border)] rounded-2xl p-6 sticky top-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-amber-500 text-xs font-black uppercase tracking-widest">
               {t.ledgers.title}
@@ -272,7 +290,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                 e.stopPropagation();
                 createLedger();
               }}
-              className="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-amber-500 bg-slate-900 shadow-sm"
+              className="p-1.5 hover:bg-[var(--row-hover)] rounded-md transition-colors text-amber-600 bg-[var(--panel-2)] shadow-sm border border-[var(--border)]"
               title={t.ledgers.newLedger}
             >
               <svg
@@ -294,15 +312,15 @@ ${rt.date}: ${new Date().toLocaleString()}
             {ledgers.map((l) => (
               <div
                 key={l.id}
-                className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${activeLedgerId === l.id ? "bg-amber-500/10 border-amber-500/50" : "bg-slate-900 border-transparent hover:border-slate-600"}`}
+                className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${activeLedgerId === l.id ? "bg-amber-500/10 border-amber-500/50" : "bg-[var(--panel-2)] border-transparent hover:border-[var(--border-2)]"}`}
                 onClick={() => setActiveLedgerId(l.id)}
               >
                 <div className="flex items-center gap-3 overflow-hidden">
                   <div
-                    className={`w-2 h-2 flex-shrink-0 rounded-full ${activeLedgerId === l.id ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-slate-700"}`}
+                    className={`w-2 h-2 flex-shrink-0 rounded-full ${activeLedgerId === l.id ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" : "bg-[var(--border-2)]"}`}
                   ></div>
                   <span
-                    className={`text-sm font-bold truncate ${activeLedgerId === l.id ? "text-amber-100" : "text-slate-400"}`}
+                    className={`text-sm font-bold truncate ${activeLedgerId === l.id ? "text-[var(--primary-text)]" : "text-[var(--muted)]"}`}
                   >
                     {l.name}
                   </span>
@@ -370,12 +388,12 @@ ${rt.date}: ${new Date().toLocaleString()}
               </div>
               <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
                 AuraGold{" "}
-                <span className="text-slate-500 font-light text-xl italic tracking-tighter">
+                <span className="text-[var(--muted-2)] font-light text-xl italic tracking-tighter">
                   {t.terminal}
                 </span>
               </h1>
             </div>
-            <p className="text-slate-400 font-medium text-sm tracking-wide">
+            <p className="text-[var(--muted)] font-medium text-sm tracking-wide">
               {t.subHeader}
             </p>
           </div>
@@ -383,7 +401,7 @@ ${rt.date}: ${new Date().toLocaleString()}
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={shareReport}
-              className="flex items-center bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-emerald-500 transition-colors shadow-lg gap-2"
+              className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-emerald-600 transition-colors shadow-lg gap-2"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -403,15 +421,46 @@ ${rt.date}: ${new Date().toLocaleString()}
             </button>
 
             <button
+              onClick={toggleTheme}
+              className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--muted)] hover:text-amber-600 transition-colors shadow-lg"
+              title={theme === "dark" ? t.themeLight : t.themeDark}
+            >
+              {theme === "dark" ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10 15a5 5 0 100-10 5 5 0 000 10z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 1a.75.75 0 01.75.75V3a.75.75 0 01-1.5 0V1.75A.75.75 0 0110 1zm0 16a.75.75 0 01.75.75V19a.75.75 0 01-1.5 0v-1.25A.75.75 0 0110 17zM3.636 3.636a.75.75 0 011.06 0l.884.884a.75.75 0 11-1.06 1.06l-.884-.884a.75.75 0 010-1.06zm10.784 10.784a.75.75 0 011.06 0l.884.884a.75.75 0 11-1.06 1.06l-.884-.884a.75.75 0 010-1.06zM1 10a.75.75 0 01.75-.75H3a.75.75 0 010 1.5H1.75A.75.75 0 011 10zm16 0a.75.75 0 01.75-.75H19a.75.75 0 010 1.5h-1.25A.75.75 0 0117 10zM3.636 16.364a.75.75 0 010-1.06l.884-.884a.75.75 0 111.06 1.06l-.884.884a.75.75 0 01-1.06 0zM14.42 5.58a.75.75 0 010-1.06l.884-.884a.75.75 0 111.06 1.06l-.884.884a.75.75 0 01-1.06 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8 8 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
+
+            <button
               onClick={toggleLanguage}
-              className="flex items-center bg-slate-800 border border-slate-700 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-amber-500 transition-colors shadow-lg"
+              className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--muted)] hover:text-amber-600 transition-colors shadow-lg"
             >
               {lang === "en" ? t.langEn : t.langZh}
             </button>
 
             <button
               onClick={clearActiveLedger}
-              className="text-slate-500 hover:text-rose-400 text-xs font-bold uppercase tracking-widest transition-colors p-2"
+              className="text-[var(--muted-2)] hover:text-rose-500 text-xs font-bold uppercase tracking-widest transition-colors p-2"
             >
               {t.clearData}
             </button>
@@ -423,7 +472,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                 activeLedger.records.length === 0 ||
                 isAnalyzing
               }
-              className="flex items-center bg-slate-800 hover:bg-slate-700 border border-slate-600 px-6 py-3 rounded-2xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl active:scale-95"
+              className="flex items-center bg-[var(--panel)] hover:bg-[var(--row-hover)] border border-[var(--border-2)] px-6 py-3 rounded-2xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl active:scale-95"
             >
               {isAnalyzing ? (
                 <span className="flex items-center gap-2">
@@ -464,7 +513,7 @@ ${rt.date}: ${new Date().toLocaleString()}
             <TradeForm onAdd={addRecord} lang={lang} />
 
             {aiAnalysis && (
-              <div className="bg-slate-800/80 backdrop-blur-md border border-amber-500/20 p-6 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-500">
+              <div className="bg-[var(--panel)] border border-amber-500/20 p-6 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-500">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-amber-500 font-black text-sm uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
@@ -472,7 +521,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                   </h4>
                   <button
                     onClick={() => setAiAnalysis("")}
-                    className="text-slate-500 hover:text-slate-300"
+                    className="text-[var(--muted-2)] hover:text-[var(--text)]"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -488,7 +537,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                     </svg>
                   </button>
                 </div>
-                <div className="text-sm text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
+                <div className="text-sm text-[var(--muted)] leading-relaxed font-medium whitespace-pre-wrap">
                   {aiAnalysis}
                 </div>
               </div>
@@ -496,17 +545,17 @@ ${rt.date}: ${new Date().toLocaleString()}
           </div>
 
           <div className="lg:col-span-7">
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
-              <div className="p-6 border-b border-slate-700 bg-slate-800/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
+            <div className="bg-[var(--panel)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-[var(--border)] bg-[var(--panel)] sticky top-0 z-20 flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-100">
+                  <h2 className="text-xl font-bold text-[var(--text)]">
                     {activeLedger?.name || t.ledger}
                   </h2>
-                  <p className="text-xs text-slate-500 font-mono">
+                  <p className="text-xs text-[var(--muted-2)] font-mono">
                     {t.ledgerSub}
                   </p>
                 </div>
-                <span className="bg-slate-700 text-amber-500 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter">
+                <span className="bg-[var(--chip-bg)] text-amber-600 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter">
                   {activeLedger?.records.length || 0} {t.transactions}
                 </span>
               </div>
@@ -514,36 +563,36 @@ ${rt.date}: ${new Date().toLocaleString()}
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-900/30 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                      <th className="px-6 py-4 border-b border-slate-700">
+                    <tr className="bg-[var(--panel-2)] text-[var(--muted-2)] text-[10px] font-black uppercase tracking-widest">
+                      <th className="px-6 py-4 border-b border-[var(--border)]">
                         {t.table.timeline}
                       </th>
-                      <th className="px-6 py-4 border-b border-slate-700 text-center">
+                      <th className="px-6 py-4 border-b border-[var(--border)] text-center">
                         {t.table.volume}
                       </th>
-                      <th className="px-6 py-4 border-b border-slate-700">
+                      <th className="px-6 py-4 border-b border-[var(--border)]">
                         {t.table.rate}
                       </th>
-                      <th className="px-6 py-4 border-b border-slate-700">
+                      <th className="px-6 py-4 border-b border-[var(--border)]">
                         {t.table.actualNet}
                       </th>
-                      <th className="px-6 py-4 border-b border-slate-700">
+                      <th className="px-6 py-4 border-b border-[var(--border)]">
                         {t.table.projectedNet}
                       </th>
-                      <th className="px-6 py-4 border-b border-slate-700"></th>
+                      <th className="px-6 py-4 border-b border-[var(--border)]"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody className="divide-y divide-[var(--border)]">
                     {(activeLedger?.records || []).map((record) => (
                       <tr
                         key={record.id}
-                        className="hover:bg-slate-700/40 transition-all group"
+                        className="hover:bg-[var(--row-hover)] transition-all group"
                       >
                         <td className="px-6 py-5 whitespace-nowrap">
-                          <div className="text-sm text-slate-300 font-semibold">
+                          <div className="text-sm text-[var(--text)] font-semibold">
                             {new Date(record.timestamp).toLocaleDateString()}
                           </div>
-                          <div className="text-[10px] text-slate-500 font-mono">
+                          <div className="text-[10px] text-[var(--muted-2)] font-mono">
                             {new Date(record.timestamp).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -554,7 +603,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                           <div className="text-sm font-black text-amber-400/80">
                             {record.grams.toFixed(2)}g
                           </div>
-                          <div className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">
+                          <div className="text-[9px] text-[var(--muted-2)] uppercase font-bold tracking-tighter">
                             {(record.handlingFeeRate * 100).toFixed(2)}%{" "}
                             {t.table.fee}
                           </div>
@@ -601,7 +650,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                         <td className="px-6 py-5 text-right">
                           <button
                             onClick={() => removeRecord(record.id)}
-                            className="text-slate-600 hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition-all scale-90 hover:scale-110"
+                            className="text-[var(--muted-2)] hover:text-rose-500 p-2 opacity-0 group-hover:opacity-100 transition-all scale-90 hover:scale-110"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -625,10 +674,10 @@ ${rt.date}: ${new Date().toLocaleString()}
                       <tr>
                         <td colSpan={6} className="px-6 py-24 text-center">
                           <div className="flex flex-col items-center opacity-40">
-                            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                            <div className="w-16 h-16 bg-[var(--panel-2)] rounded-full flex items-center justify-center mb-4">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-slate-400"
+                                className="h-8 w-8 text-[var(--muted)]"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -641,7 +690,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 />
                               </svg>
                             </div>
-                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                            <p className="text-[var(--muted)] font-bold uppercase tracking-widest text-xs">
                               {t.noRecords}
                             </p>
                           </div>

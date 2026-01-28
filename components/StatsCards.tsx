@@ -11,9 +11,9 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
   const t = translations[lang].stats;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-amber-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-amber-500/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.totalProfit}
           </p>
           <div className="p-2 bg-amber-500/10 rounded-lg">
@@ -42,9 +42,9 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
         </h3>
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-blue-500/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.projectedTotal}
           </p>
           <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -73,9 +73,9 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
         </h3>
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-emerald-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-emerald-500/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.profitVariance}
           </p>
           <div
@@ -108,15 +108,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
         </h3>
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-slate-400/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-[var(--border-2)] transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.avgCost}
           </p>
-          <div className="p-2 bg-slate-700 rounded-lg">
+          <div className="p-2 bg-[var(--panel-2)] rounded-lg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-slate-300"
+              className="h-4 w-4 text-[var(--muted)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -130,7 +130,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
             </svg>
           </div>
         </div>
-        <h3 className="text-3xl font-bold text-slate-100 font-mono tracking-tight">
+        <h3 className="text-3xl font-bold text-[var(--text)] font-mono tracking-tight">
           $
           {summary.avgCostPrice.toLocaleString(undefined, {
             minimumFractionDigits: 2,

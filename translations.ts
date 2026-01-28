@@ -17,6 +17,8 @@ export const translations = {
       "DANGER: This will permanently delete the ledger '{name}' and all its records. Continue?",
     shareBtn: "Share Report",
     copied: "Report copied to clipboard!",
+    themeLight: "Light Mode",
+    themeDark: "Dark Mode",
     langEn: "English",
     langZh: "简体中文",
     ledgers: {
@@ -89,6 +91,8 @@ export const translations = {
       "危险：这将永久删除账本 '{name}' 及其所有记录。是否继续？",
     shareBtn: "分享报告",
     copied: "报告已复制到剪贴板！",
+    themeLight: "明亮模式",
+    themeDark: "暗黑模式",
     langEn: "English",
     langZh: "简体中文",
     ledgers: {
