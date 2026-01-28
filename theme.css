@@ -1,5 +1,5 @@
 :root {
-  --bg: #f8fafc;
+  --bg: #f7fafc;
   --text: #0f172a;
   --muted: #475569;
   --muted-2: #64748b;
@@ -12,29 +12,43 @@
   --placeholder: #94a3b8;
   --chip-bg: #e2e8f0;
   --row-hover: rgba(226, 232, 240, 0.7);
-  --primary-text: #b45309;
+  --accent: #22d3ee;
+  --accent-2: #0ea5a4;
+  --success: #10b981;
+  --danger: #ef4444;
+  --info: #60a5fa;
+  --brand-from: #22d3ee;
+  --brand-to: #10b981;
+  --primary-text: #0ea5a4;
   --scrollbar-track: #e2e8f0;
   --scrollbar-thumb: #94a3b8;
   --scrollbar-thumb-hover: #64748b;
 }
 
 html[data-theme="dark"] {
-  --bg: #0f172a;
-  --text: #f1f5f9;
+  --bg: #0b1220;
+  --text: #e5e7eb;
   --muted: #94a3b8;
   --muted-2: #64748b;
-  --panel: #1e293b;
+  --panel: #111827;
   --panel-2: #0b1220;
-  --border: #334155;
-  --border-2: #475569;
+  --border: #1f2937;
+  --border-2: #334155;
   --input-bg: #0b1220;
-  --input-text: #f1f5f9;
+  --input-text: #e5e7eb;
   --placeholder: #64748b;
-  --chip-bg: #334155;
-  --row-hover: rgba(51, 65, 85, 0.4);
-  --primary-text: #fef3c7;
-  --scrollbar-track: #1e293b;
-  --scrollbar-thumb: #475569;
+  --chip-bg: #1f2937;
+  --row-hover: rgba(31, 41, 55, 0.5);
+  --accent: #22d3ee;
+  --accent-2: #0ea5a4;
+  --success: #10b981;
+  --danger: #ef4444;
+  --info: #60a5fa;
+  --brand-from: #22d3ee;
+  --brand-to: #10b981;
+  --primary-text: #22d3ee;
+  --scrollbar-track: #111827;
+  --scrollbar-thumb: #334155;
   --scrollbar-thumb-hover: #64748b;
 }
 

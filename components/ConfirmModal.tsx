@@ -36,7 +36,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 rounded-xl bg-amber-500 text-slate-900 font-bold hover:bg-amber-400 transition-colors"
+            className="px-4 py-2 rounded-xl bg-[var(--accent)] text-slate-900 font-bold hover:bg-[var(--success)] transition-colors"
           >
             {confirmText}
           </button>
@@ -45,4 +45,3 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </div>
   );
 };
-

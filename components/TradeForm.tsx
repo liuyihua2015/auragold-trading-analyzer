@@ -70,8 +70,8 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
 
   return (
     <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-2xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
-      <h2 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+      <h2 className="text-xl font-bold text-[var(--accent)] mb-6 flex items-center gap-2">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-6 w-6"
@@ -103,7 +103,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               value={formData.grams}
               onChange={handleChange}
               placeholder="0"
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
           <div className="col-span-1">
@@ -119,7 +119,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               value={formData.handlingFeeRate}
               onChange={handleChange}
               placeholder="0.004"
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
         </div>
@@ -138,7 +138,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               value={formData.costPrice}
               onChange={handleChange}
               placeholder="0"
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
           <div>
@@ -154,13 +154,13 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
               value={formData.sellingPrice}
               onChange={handleChange}
               placeholder="0"
-              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:ring-2 focus:ring-[var(--success)] outline-none transition-all placeholder:text-[var(--placeholder)]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-blue-600 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+          <label className="block text-[var(--info)] text-[10px] font-bold uppercase tracking-wider mb-1.5">
             {t.targetPrice}
           </label>
           <input
@@ -170,13 +170,13 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
             value={formData.desiredPrice}
             onChange={handleChange}
             placeholder={t.targetPlaceholder}
-            className="w-full bg-[var(--input-bg)] border border-blue-500/30 rounded-xl px-4 py-3 text-blue-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-[var(--placeholder)]"
+            className="w-full bg-[var(--input-bg)] border border-[var(--info)]/30 rounded-xl px-4 py-3 text-[var(--info)] focus:ring-2 focus:ring-[var(--info)] outline-none transition-all placeholder:text-[var(--placeholder)]"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-bold py-4 rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98] mt-2 flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] hover:from-[var(--accent)] hover:to-[var(--success)] text-slate-900 font-bold py-4 rounded-xl transition-all shadow-lg active:scale-[0.98] mt-2 flex items-center justify-center gap-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

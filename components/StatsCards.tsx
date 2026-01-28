@@ -11,15 +11,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
   const t = translations[lang].stats;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-amber-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-[var(--accent)]/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.totalProfit}
           </p>
-          <div className="p-2 bg-amber-500/10 rounded-lg">
+          <div className="p-2 bg-[var(--accent)]/10 rounded-lg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-amber-500"
+              className="h-4 w-4 text-[var(--accent)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -33,7 +33,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
             </svg>
           </div>
         </div>
-        <h3 className="text-3xl font-bold text-amber-500 font-mono tracking-tight">
+        <h3 className="text-3xl font-bold text-[var(--accent)] font-mono tracking-tight">
           ￥
           {summary.totalProfit.toLocaleString(undefined, {
             minimumFractionDigits: 2,
@@ -42,15 +42,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
         </h3>
       </div>
 
-      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-blue-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-[var(--info)]/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.projectedTotal}
           </p>
-          <div className="p-2 bg-blue-500/10 rounded-lg">
+          <div className="p-2 bg-[var(--info)]/10 rounded-lg">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-blue-400"
+              className="h-4 w-4 text-[var(--info)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -64,7 +64,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
             </svg>
           </div>
         </div>
-        <h3 className="text-3xl font-bold text-blue-400 font-mono tracking-tight">
+        <h3 className="text-3xl font-bold text-[var(--info)] font-mono tracking-tight">
           ￥
           {summary.totalProjectedProfit.toLocaleString(undefined, {
             minimumFractionDigits: 2,
@@ -73,17 +73,17 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
         </h3>
       </div>
 
-      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-emerald-500/50 transition-colors">
+      <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-[var(--success)]/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
             {t.profitVariance}
           </p>
           <div
-            className={`p-2 rounded-lg ${summary.profitDifference >= 0 ? "bg-emerald-500/10" : "bg-rose-500/10"}`}
+            className={`p-2 rounded-lg ${summary.profitDifference >= 0 ? "bg-[var(--success)]/10" : "bg-[var(--danger)]/10"}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 ${summary.profitDifference >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+              className={`h-4 w-4 ${summary.profitDifference >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -98,7 +98,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
           </div>
         </div>
         <h3
-          className={`text-3xl font-bold font-mono tracking-tight ${summary.profitDifference >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+          className={`text-3xl font-bold font-mono tracking-tight ${summary.profitDifference >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
         >
           {summary.profitDifference >= 0 ? "+" : ""}￥
           {summary.profitDifference.toLocaleString(undefined, {

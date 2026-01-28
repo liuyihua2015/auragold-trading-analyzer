@@ -46,7 +46,7 @@ export const InputModal: React.FC<InputModalProps> = ({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={placeholder}
-            className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:outline-none focus:ring-2 focus:ring-amber-500 mb-6 placeholder:text-[var(--placeholder)]"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border-2)] rounded-xl px-4 py-3 text-[var(--input-text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-6 placeholder:text-[var(--placeholder)]"
             autoFocus
           />
           <div className="flex justify-end gap-3">
@@ -60,7 +60,7 @@ export const InputModal: React.FC<InputModalProps> = ({
             <button
               type="submit"
               disabled={!value.trim()}
-              className="px-4 py-2 rounded-xl bg-amber-500 text-slate-900 font-bold hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-xl bg-[var(--accent)] text-slate-900 font-bold hover:bg-[var(--success)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {confirmText}
             </button>
