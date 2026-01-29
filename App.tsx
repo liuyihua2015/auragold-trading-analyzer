@@ -320,7 +320,7 @@ ${rt.date}: ${new Date().toLocaleString()}
       className={`min-h-screen selection:bg-[var(--accent)]/30 flex flex-col ${isHistoryFullscreen ? "gap-6 p-3 md:p-6 w-full" : "gap-8 pb-20 p-4 md:p-8 w-full"}`}
     >
       <main
-        className={`flex-1 min-w-0 ${isHistoryFullscreen ? "flex flex-col min-h-[calc(100vh-48px)]" : ""}`}
+        className={`flex-1 min-w-0 px-[30px] ${isHistoryFullscreen ? "flex flex-col min-h-[calc(100vh-48px)]" : ""}`}
       >
         {isHistoryFullscreen ? (
           <div className="flex items-center justify-between gap-4">
@@ -752,45 +752,45 @@ ${rt.date}: ${new Date().toLocaleString()}
                 <div
                   className={`${isHistoryFullscreen ? "flex-1 min-h-0 overflow-auto" : "overflow-x-auto max-h-[70vh] overflow-y-auto"} scroll-smooth`}
                 >
-                  <table className="min-w-[1440px] w-full text-center border-collapse table-fixed">
+                  <table className="min-w-[980px] w-full text-center border-collapse table-fixed">
                     <colgroup>
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
-                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "6%", minWidth: "80px" }} />
+                      <col style={{ width: "14%", minWidth: "160px" }} />
+                      <col style={{ width: "10%", minWidth: "120px" }} />
+                      <col style={{ width: "11%", minWidth: "130px" }} />
+                      <col style={{ width: "11%", minWidth: "130px" }} />
+                      <col style={{ width: "11%", minWidth: "140px" }} />
+                      <col style={{ width: "12%", minWidth: "140px" }} />
+                      <col style={{ width: "15%", minWidth: "160px" }} />
+                      <col style={{ width: "10%", minWidth: "120px" }} />
                     </colgroup>
                     <thead className="sticky top-0 z-10 bg-[var(--panel-2)]">
                       <tr className="text-[var(--muted-2)] text-[10px] md:text-[11px] font-black uppercase tracking-widest text-center">
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {lang === "zh" ? "序号" : "#"}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.timeline}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.volume}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.cost}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.sell}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.fee}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.actualNet}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {t.table.projectedNet}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center whitespace-nowrap">
                           {lang === "zh" ? "操作" : "Action"}
                         </th>
                       </tr>
@@ -806,12 +806,12 @@ ${rt.date}: ${new Date().toLocaleString()}
                             key={record.id}
                             className="hover:bg-[var(--row-hover)] transition-all group text-xs md:text-sm"
                           >
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <span className="text-sm font-black text-[var(--muted)] font-mono">
                                 {index + 1}
                               </span>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="text-sm text-[var(--text)] font-semibold">
                                 {new Date(
                                   record.timestamp,
@@ -827,22 +827,22 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="text-sm font-black text-[var(--accent)]">
                                 {record.grams.toFixed(2)}g
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="text-sm font-black text-[var(--danger)] font-mono">
                                 ￥{record.costPrice.toFixed(2)}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="text-sm font-black text-[var(--success)] font-mono">
                                 ￥{record.sellingPrice.toFixed(2)}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-sm font-black text-[var(--muted)] font-mono">
                                   ￥
@@ -856,7 +856,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div
                                 className={`text-sm font-black font-mono ${record.actualProfit >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
                               >
@@ -867,7 +867,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 })}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-[10px] text-[var(--info)] font-bold uppercase tracking-tighter opacity-70">
                                   {t.table.target}: ￥
@@ -885,7 +885,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center whitespace-nowrap">
                               <button
                                 onClick={() =>
                                   setDeleteModal({
