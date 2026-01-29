@@ -8,6 +8,7 @@ interface ConfirmModalProps {
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
+  variant?: "primary" | "danger";
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -18,8 +19,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
   confirmText = "Confirm",
   cancelText = "Cancel",
+  variant = "primary",
 }) => {
   if (!isOpen) return null;
+  const confirmClassName =
+    variant === "danger"
+      ? "px-4 py-2 rounded-xl bg-[var(--danger)] text-white font-bold hover:bg-[var(--danger)]/90 transition-colors"
+      : "px-4 py-2 rounded-xl bg-[var(--accent)] text-slate-900 font-bold hover:bg-[var(--success)] transition-colors";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-[var(--panel)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl p-6 transform transition-all">
@@ -36,7 +42,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 rounded-xl bg-[var(--accent)] text-slate-900 font-bold hover:bg-[var(--success)] transition-colors"
+            className={confirmClassName}
           >
             {confirmText}
           </button>

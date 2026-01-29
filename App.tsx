@@ -8,8 +8,16 @@ import {
   ShareReportModal,
   ShareReportTemplate,
 } from "./components/ShareReportModal";
+import { DataTransferModal } from "./components/DataTransferModal";
 import { analyzeTrades } from "./services/geminiService";
 import { translations, Language } from "./translations";
+import {
+  downloadJson,
+  normalizeAllImport,
+  normalizeLedgerImport,
+  readJsonFromFile,
+  safeFilename,
+} from "./utils/dataTransfer";
 
 // Robust ID fallback
 const generateId = () => {
@@ -46,42 +54,47 @@ export default function App() {
         console.error("Failed to parse ledgers", e);
       }
     }
-    // Return initial default ledger if none exists
-    const defaultId = generateId();
-    return [
-      {
-        id: defaultId,
-        name: translations["zh"].ledgers.defaultName,
-        records: [],
-        createdAt: Date.now(),
-      },
-    ];
+    return [];
+  });
+
+  const [showMasterLedger, setShowMasterLedger] = useState(() => {
+    const saved = localStorage.getItem("auragold_show_master_ledger");
+    if (saved === "false") return false;
+    return true;
   });
 
   const [activeLedgerId, setActiveLedgerId] = useState<string>(() => {
     const savedActive = localStorage.getItem("auragold_active_ledger_id");
     const savedLedgers = localStorage.getItem("auragold_all_ledgers");
+    const savedShowMaster = localStorage.getItem("auragold_show_master_ledger");
     if (savedActive && savedLedgers) {
       try {
         const parsed = JSON.parse(savedLedgers);
         if (
-          savedActive === "master" ||
+          (savedActive === "master" && savedShowMaster !== "false") ||
           parsed.some((l: Ledger) => l.id === savedActive)
         ) {
           return savedActive;
         }
       } catch (e) {}
     }
+    if (savedShowMaster !== "false") return "master";
     return ledgers[0]?.id || "";
   });
 
   const [aiAnalysis, setAiAnalysis] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [transferToast, setTransferToast] = useState<{
+    isOpen: boolean;
+    message: string;
+    variant: "success" | "danger";
+  }>({ isOpen: false, message: "", variant: "success" });
   const [isHistoryFullscreen, setIsHistoryFullscreen] = useState(false);
   const [isLedgerMenuOpen, setIsLedgerMenuOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [shareTemplate, setShareTemplate] =
     useState<ShareReportTemplate>("glass");
   const [shareGeneratedAt, setShareGeneratedAt] = useState(() =>
@@ -105,9 +118,11 @@ export default function App() {
   }>({
     isOpen: false,
   });
-  const [clearModal, setClearModal] = useState<{ isOpen: boolean }>({
-    isOpen: false,
-  });
+  const [ledgerActionModal, setLedgerActionModal] = useState<{
+    isOpen: boolean;
+    action?: "delete" | "clear" | "deleteMaster";
+    targetId?: string;
+  }>({ isOpen: false });
 
   // Sync to Storage whenever state changes
   useEffect(() => {
@@ -115,8 +130,17 @@ export default function App() {
   }, [ledgers]);
 
   useEffect(() => {
+    localStorage.setItem(
+      "auragold_show_master_ledger",
+      showMasterLedger ? "true" : "false",
+    );
+  }, [showMasterLedger]);
+
+  useEffect(() => {
     if (activeLedgerId) {
       localStorage.setItem("auragold_active_ledger_id", activeLedgerId);
+    } else {
+      localStorage.removeItem("auragold_active_ledger_id");
     }
   }, [activeLedgerId]);
 
@@ -141,6 +165,13 @@ export default function App() {
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [isLedgerMenuOpen]);
+
+  useEffect(() => {
+    if (showMasterLedger) return;
+    if (activeLedgerId === "master") {
+      setActiveLedgerId(ledgers[0]?.id || "");
+    }
+  }, [activeLedgerId, ledgers, showMasterLedger]);
 
   const activeLedger = useMemo(
     () => ledgers.find((l) => l.id === activeLedgerId) || ledgers[0],
@@ -184,7 +215,7 @@ export default function App() {
   }, [activeLedger, activeLedgerId, ledgers]);
 
   const addRecord = (record: TradeRecord) => {
-    if (activeLedgerId === "master") return;
+    if (!activeLedgerId || activeLedgerId === "master") return;
     setLedgers((prev) =>
       prev.map((l) =>
         l.id === activeLedgerId ? { ...l, records: [record, ...l.records] } : l,
@@ -193,6 +224,7 @@ export default function App() {
   };
 
   const removeRecord = (id: string) => {
+    if (!activeLedgerId || activeLedgerId === "master") return;
     setLedgers((prev) =>
       prev.map((l) =>
         l.id === activeLedgerId
@@ -202,12 +234,13 @@ export default function App() {
     );
   };
 
-  const clearActiveLedger = () => {
-    if (activeLedgerId === "master") return;
+  const clearLedger = (ledgerId: string) => {
     setLedgers((prev) =>
-      prev.map((l) => (l.id === activeLedgerId ? { ...l, records: [] } : l)),
+      prev.map((l) => (l.id === ledgerId ? { ...l, records: [] } : l)),
     );
-    setAiAnalysis("");
+    if (activeLedgerId === ledgerId || activeLedgerId === "master") {
+      setAiAnalysis("");
+    }
   };
 
   const handleModalConfirm = (value: string) => {
@@ -259,25 +292,17 @@ export default function App() {
     const ledger = ledgers.find((l) => l.id === id);
     if (!ledger) return;
 
-    if (window.confirm(t.confirmDeleteLedger.replace("{name}", ledger.name))) {
-      const filtered = ledgers.filter((l) => l.id !== id);
-      if (filtered.length === 0) {
-        // Prevent deleting the last ledger
-        const defaultId = generateId();
-        const defaultLedger: Ledger = {
-          id: defaultId,
-          name: t.ledgers.defaultName,
-          records: [],
-          createdAt: Date.now(),
-        };
-        setLedgers([defaultLedger]);
-        setActiveLedgerId(defaultId);
+    const filtered = ledgers.filter((l) => l.id !== id);
+    setLedgers(filtered);
+    if (activeLedgerId === id) {
+      if (filtered.length > 0) {
+        setActiveLedgerId(filtered[0].id);
       } else {
-        setLedgers(filtered);
-        if (activeLedgerId === id) {
-          setActiveLedgerId(filtered[0].id);
-        }
+        setActiveLedgerId(showMasterLedger ? "master" : "");
       }
+    }
+    if (activeLedgerId === id || activeLedgerId === "master") {
+      setAiAnalysis("");
     }
   };
 
@@ -285,7 +310,8 @@ export default function App() {
     const name =
       activeLedgerId === "master"
         ? t.ledgers.masterName
-        : activeLedger?.name || t.ledger;
+        : activeLedger?.name ||
+          (ledgers.length === 0 ? t.ledgers.none : t.ledger);
     const txCount =
       activeLedgerId === "master"
         ? ledgers.reduce((acc, l) => acc + l.records.length, 0)
@@ -304,8 +330,18 @@ export default function App() {
     shareGeneratedAt,
     t.ledger,
     t.ledgers.masterName,
+    t.ledgers.none,
     t.report,
   ]);
+
+  const dataTransferI18n = useMemo(
+    () => ({
+      ...t.dataTransfer,
+      fileSelected: (name: string) =>
+        t.dataTransfer.fileSelected.replace("{name}", name),
+    }),
+    [t.dataTransfer],
+  );
 
   const buildShareReportText = (generatedAt: string) => {
     const rt = t.report;
@@ -342,6 +378,204 @@ ${rt.date}: ${generatedAt}
       new Date().toLocaleString(lang === "zh" ? "zh-CN" : "en-US"),
     );
     setIsShareModalOpen(true);
+  };
+
+  const showTransferToast = (
+    message: string,
+    variant: "success" | "danger",
+  ) => {
+    setTransferToast({ isOpen: true, message, variant });
+    setTimeout(
+      () => setTransferToast((prev) => ({ ...prev, isOpen: false })),
+      3000,
+    );
+  };
+
+  const exportAllDataJson = () => {
+    const now = new Date();
+    const stamp = now
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .slice(0, 19);
+    const filename = `auragold-all-${stamp}.json`;
+    downloadJson(filename, {
+      schema: "auragold.export",
+      version: 1,
+      kind: "all",
+      exportedAt: now.toISOString(),
+      payload: { ledgers, activeLedgerId, lang, theme },
+    });
+    showTransferToast(
+      lang === "zh" ? "已导出 JSON 文件" : "Exported JSON file",
+      "success",
+    );
+  };
+
+  const exportLedgerJson = (ledgerId: string) => {
+    const ledger = ledgers.find((l) => l.id === ledgerId);
+    if (!ledger) return;
+    const now = new Date();
+    const stamp = now
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .slice(0, 19);
+    const filename = `auragold-ledger-${safeFilename(ledger.name)}-${stamp}.json`;
+    downloadJson(filename, {
+      schema: "auragold.export",
+      version: 1,
+      kind: "ledger",
+      exportedAt: now.toISOString(),
+      payload: { ledger },
+    });
+    showTransferToast(
+      lang === "zh" ? "已导出账本 JSON 文件" : "Exported ledger JSON file",
+      "success",
+    );
+  };
+
+  const mergeLedgers = (current: Ledger[], incoming: Ledger[]) => {
+    const map = new Map<string, Ledger>();
+    for (const l of current) map.set(l.id, l);
+
+    for (const inLedger of incoming) {
+      const existing = map.get(inLedger.id);
+      if (!existing) {
+        map.set(inLedger.id, inLedger);
+        continue;
+      }
+      const seen = new Set(existing.records.map((r) => r.id));
+      const mergedRecords = [...existing.records];
+      for (const r of inLedger.records) {
+        if (!seen.has(r.id)) mergedRecords.push(r);
+      }
+      mergedRecords.sort((a, b) => b.timestamp - a.timestamp);
+      map.set(existing.id, { ...existing, records: mergedRecords });
+    }
+
+    return [...map.values()].sort((a, b) => a.createdAt - b.createdAt);
+  };
+
+  const importAllDataJson = async (file: File, mode: "merge" | "replace") => {
+    try {
+      const raw = await readJsonFromFile(file);
+      const normalized = normalizeAllImport(raw);
+      if (!normalized) {
+        throw new Error(lang === "zh" ? "JSON 格式不支持" : "Unsupported JSON");
+      }
+
+      if (mode === "replace") {
+        const ok = window.confirm(
+          lang === "zh"
+            ? "覆盖导入会替换当前全部账本数据与设置，是否继续？"
+            : "Replace import will overwrite all current ledgers and settings. Continue?",
+        );
+        if (!ok) return;
+
+        const nextLedgers = normalized.ledgers;
+        setLedgers(nextLedgers);
+
+        const importedActive = normalized.activeLedgerId;
+        const nextActive =
+          importedActive &&
+          importedActive !== "master" &&
+          nextLedgers.some((l) => l.id === importedActive)
+            ? importedActive
+            : importedActive === "master" && showMasterLedger
+              ? "master"
+              : nextLedgers.length > 0
+                ? nextLedgers[0].id
+                : showMasterLedger
+                  ? "master"
+                  : "";
+        setActiveLedgerId(nextActive);
+        if (normalized.lang) setLang(normalized.lang);
+        if (normalized.theme) setTheme(normalized.theme);
+      } else {
+        setLedgers((prev) => mergeLedgers(prev, normalized.ledgers));
+      }
+
+      setAiAnalysis("");
+      showTransferToast(
+        lang === "zh" ? "导入完成" : "Import completed",
+        "success",
+      );
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : lang === "zh"
+            ? "导入失败"
+            : "Import failed";
+      showTransferToast(msg, "danger");
+    }
+  };
+
+  const importLedgerJson = async (
+    file: File,
+    mode: "asNew" | "replace",
+    targetLedgerId: string,
+  ) => {
+    try {
+      const raw = await readJsonFromFile(file);
+      const ledger = normalizeLedgerImport(raw);
+      if (!ledger) {
+        throw new Error(lang === "zh" ? "JSON 格式不支持" : "Unsupported JSON");
+      }
+
+      if (mode === "asNew") {
+        const existingNames = new Set(ledgers.map((l) => l.name.trim()));
+        const baseName =
+          ledger.name.trim() ||
+          (lang === "zh" ? "导入账本" : "Imported Ledger");
+        let name = baseName;
+        let i = 2;
+        while (existingNames.has(name)) {
+          name =
+            lang === "zh"
+              ? `${baseName}（导入${i}）`
+              : `${baseName} (import ${i})`;
+          i += 1;
+        }
+        const newId = generateId();
+        const newLedger: Ledger = { ...ledger, id: newId, name };
+        setLedgers((prev) => [...prev, newLedger]);
+        setActiveLedgerId(newId);
+      } else {
+        const target = ledgers.find((l) => l.id === targetLedgerId);
+        if (!target) {
+          throw new Error(
+            lang === "zh" ? "目标账本不存在" : "Target ledger not found",
+          );
+        }
+        const ok = window.confirm(
+          lang === "zh"
+            ? `将用文件记录覆盖账本「${target.name}」，是否继续？`
+            : `This will overwrite ledger "${target.name}" with the file. Continue?`,
+        );
+        if (!ok) return;
+        setLedgers((prev) =>
+          prev.map((l) =>
+            l.id === targetLedgerId ? { ...l, records: ledger.records } : l,
+          ),
+        );
+        if (activeLedgerId === targetLedgerId) setAiAnalysis("");
+      }
+
+      showTransferToast(
+        lang === "zh" ? "导入完成" : "Import completed",
+        "success",
+      );
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : lang === "zh"
+            ? "导入失败"
+            : "Import failed";
+      showTransferToast(msg, "danger");
+    }
   };
 
   const runAnalysis = async () => {
@@ -422,6 +656,13 @@ ${rt.date}: ${generatedAt}
               </button>
               <button
                 type="button"
+                onClick={() => setIsTransferModalOpen(true)}
+                className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg"
+              >
+                {t.transferBtn}
+              </button>
+              <button
+                type="button"
                 onClick={toggleLanguage}
                 className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg"
               >
@@ -459,7 +700,8 @@ ${rt.date}: ${generatedAt}
                   <span className="max-w-[180px] truncate">
                     {activeLedgerId === "master"
                       ? t.ledgers.masterName
-                      : activeLedger?.name || t.ledger}
+                      : activeLedger?.name ||
+                        (ledgers.length === 0 ? t.ledgers.none : t.ledger)}
                   </span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -480,31 +722,74 @@ ${rt.date}: ${generatedAt}
                       {t.ledgers.title}
                     </div>
                     <div className="max-h-[50vh] overflow-auto">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveLedgerId("master");
-                          setIsLedgerMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 flex items-center justify-between gap-3 transition-colors ${
-                          activeLedgerId === "master"
-                            ? "bg-[var(--accent)]/10"
-                            : "hover:bg-[var(--row-hover)]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span
-                            className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              activeLedgerId === "master"
-                                ? "bg-[var(--accent)]"
-                                : "bg-[var(--border-2)]"
-                            }`}
-                          />
-                          <span className="text-sm font-bold truncate text-[var(--text)]">
-                            {t.ledgers.masterName}
-                          </span>
+                      {showMasterLedger && (
+                        <div
+                          className={`group w-full px-4 py-3 flex items-center justify-between gap-3 transition-colors ${
+                            activeLedgerId === "master"
+                              ? "bg-[var(--accent)]/10"
+                              : "hover:bg-[var(--row-hover)]"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveLedgerId("master");
+                              setIsLedgerMenuOpen(false);
+                            }}
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          >
+                            <span
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                activeLedgerId === "master"
+                                  ? "bg-[var(--accent)]"
+                                  : "bg-[var(--border-2)]"
+                              }`}
+                            />
+                            <span className="text-sm font-bold truncate text-[var(--text)]">
+                              {t.ledgers.masterName}
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsLedgerMenuOpen(false);
+                                setLedgerActionModal({
+                                  isOpen: true,
+                                  action: "deleteMaster",
+                                  targetId: "master",
+                                });
+                              }}
+                              className="p-1 text-[var(--muted-2)] hover:text-[var(--danger)] transition-all"
+                              title={t.ledgers.deleteMaster}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      </button>
+                      )}
+                      {ledgers.length === 0 && (
+                        <div className="px-4 py-6 text-xs text-[var(--muted-2)]">
+                          {lang === "zh"
+                            ? "暂无账本，点击下方“新建账本”开始。"
+                            : "No ledgers yet. Create one below."}
+                        </div>
+                      )}
                       {ledgers.map((l) => (
                         <div
                           key={l.id}
@@ -542,7 +827,7 @@ ${rt.date}: ${generatedAt}
                                 setIsLedgerMenuOpen(false);
                                 renameLedger(l.id);
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-2)] hover:text-[var(--accent)] transition-all"
+                              className="p-1 text-[var(--muted-2)] hover:text-[var(--accent)] transition-all"
                               title={t.ledgers.rename}
                             >
                               <svg
@@ -566,9 +851,43 @@ ${rt.date}: ${generatedAt}
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setIsLedgerMenuOpen(false);
-                                deleteLedger(l.id);
+                                setLedgerActionModal({
+                                  isOpen: true,
+                                  action: "clear",
+                                  targetId: l.id,
+                                });
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-2)] hover:text-[var(--danger)] transition-all"
+                              className="p-1 text-[var(--muted-2)] hover:text-[var(--accent-2)] transition-all"
+                              title={t.ledgers.clear}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19.5 7.5l-7.5 7.5m0 0L6 9m6 6H6m15.5-7.5a2.121 2.121 0 10-3 3l3-3z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsLedgerMenuOpen(false);
+                                setLedgerActionModal({
+                                  isOpen: true,
+                                  action: "delete",
+                                  targetId: l.id,
+                                });
+                              }}
+                              className="p-1 text-[var(--muted-2)] hover:text-[var(--danger)] transition-all"
                               title={t.ledgers.delete}
                             >
                               <svg
@@ -591,6 +910,32 @@ ${rt.date}: ${generatedAt}
                       ))}
                     </div>
                     <div className="border-t border-[var(--border)] p-3">
+                      {!showMasterLedger && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowMasterLedger(true);
+                            setIsLedgerMenuOpen(false);
+                          }}
+                          className="w-full mb-2 flex items-center justify-center gap-2 bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0114-7M19 5a9 9 0 00-14 7"
+                            />
+                          </svg>
+                          {t.ledgers.restoreMaster}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -618,6 +963,39 @@ ${rt.date}: ${generatedAt}
                 )}
               </div>
               <button
+                type="button"
+                onClick={() => {
+                  if (activeLedgerId === "master") return;
+                  setLedgerActionModal({
+                    isOpen: true,
+                    action: "clear",
+                    targetId: activeLedgerId,
+                  });
+                }}
+                disabled={
+                  activeLedgerId === "master" ||
+                  (activeLedger?.records.length || 0) === 0
+                }
+                className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent-2)] transition-colors shadow-lg gap-2 disabled:opacity-40 disabled:hover:text-[var(--muted)]"
+                title={t.clearData}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 14l6-6m0 0l3 3m-3-3l-3-3m-6 15h12"
+                  />
+                </svg>
+                {t.clearData}
+              </button>
+              <button
                 onClick={openShareModal}
                 className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg gap-2"
               >
@@ -636,6 +1014,21 @@ ${rt.date}: ${generatedAt}
                   />
                 </svg>
                 {t.shareBtn}
+              </button>
+
+              <button
+                onClick={() => setIsTransferModalOpen(true)}
+                className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M3 3a1 1 0 011-1h4a1 1 0 110 2H5v12h3a1 1 0 110 2H4a1 1 0 01-1-1V3zm9 0a1 1 0 011-1h3a1 1 0 011 1v5a1 1 0 11-2 0V4h-2a1 1 0 110-2zm-1.293 6.293a1 1 0 011.414 0L15 11.586l2.879-2.879a1 1 0 111.414 1.414l-3.586 3.586a1 1 0 01-1.414 0l-3.586-3.586a1 1 0 010-1.414z" />
+                </svg>
+                {t.transferBtn}
               </button>
 
               <button
@@ -731,8 +1124,11 @@ ${rt.date}: ${generatedAt}
           <StatsCards
             summary={summary}
             lang={lang}
-            onNewTrade={() => setIsTradeModalOpen(true)}
-            newTradeDisabled={activeLedgerId === "master"}
+            onNewTrade={() => {
+              if (!activeLedgerId || activeLedgerId === "master") return;
+              setIsTradeModalOpen(true);
+            }}
+            newTradeDisabled={!activeLedgerId || activeLedgerId === "master"}
           />
         )}
 
@@ -754,7 +1150,8 @@ ${rt.date}: ${generatedAt}
                   <h2 className="text-xl font-bold text-[var(--text)]">
                     {activeLedgerId === "master"
                       ? t.ledgers.masterName
-                      : activeLedger?.name || t.ledger}
+                      : activeLedger?.name ||
+                        (ledgers.length === 0 ? t.ledgers.none : t.ledger)}
                   </h2>
                   <p className="text-xs text-[var(--muted-2)] font-mono">
                     {t.ledgerSub}
@@ -1029,7 +1426,7 @@ ${rt.date}: ${generatedAt}
         </div>
       </main>
 
-      {isTradeModalOpen && activeLedgerId !== "master" && (
+      {isTradeModalOpen && !!activeLedgerId && activeLedgerId !== "master" && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onMouseDown={(e) => {
@@ -1076,6 +1473,18 @@ ${rt.date}: ${generatedAt}
         onClose={() => setIsShareModalOpen(false)}
       />
 
+      <DataTransferModal
+        isOpen={isTransferModalOpen}
+        i18n={dataTransferI18n}
+        ledgers={ledgers}
+        activeLedgerId={activeLedgerId}
+        onClose={() => setIsTransferModalOpen(false)}
+        onExportAll={exportAllDataJson}
+        onImportAll={importAllDataJson}
+        onExportLedger={exportLedgerJson}
+        onImportLedger={importLedgerJson}
+      />
+
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-8 right-8 bg-[var(--success)] text-slate-900 px-6 py-3 rounded-2xl font-bold shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 z-50 flex items-center gap-3">
@@ -1092,6 +1501,14 @@ ${rt.date}: ${generatedAt}
             />
           </svg>
           {t.copied}
+        </div>
+      )}
+
+      {transferToast.isOpen && (
+        <div
+          className={`fixed bottom-8 left-8 ${transferToast.variant === "success" ? "bg-[var(--success)]" : "bg-[var(--danger)]"} text-slate-900 px-6 py-3 rounded-2xl font-bold shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 z-50`}
+        >
+          {transferToast.message}
         </div>
       )}
 
@@ -1120,19 +1537,68 @@ ${rt.date}: ${generatedAt}
           if (deleteModal.targetId) removeRecord(deleteModal.targetId);
           setDeleteModal({ isOpen: false });
         }}
+        variant="danger"
         confirmText={t.ledgers.confirm}
         cancelText={t.ledgers.cancel}
       />
       <ConfirmModal
-        isOpen={clearModal.isOpen}
-        title={lang === "zh" ? "清空当前账本" : "Clear Current Ledger"}
-        message={t.confirmClear}
-        onCancel={() => setClearModal({ isOpen: false })}
+        isOpen={ledgerActionModal.isOpen}
+        title={
+          ledgerActionModal.action === "deleteMaster"
+            ? lang === "zh"
+              ? "删除总账本"
+              : "Delete Master Ledger"
+            : ledgerActionModal.action === "delete"
+              ? lang === "zh"
+                ? "删除账本"
+                : "Delete Ledger"
+              : lang === "zh"
+                ? "清空账本记录"
+                : "Clear Ledger Records"
+        }
+        message={
+          ledgerActionModal.action === "deleteMaster"
+            ? t.confirmDeleteMaster
+            : ledgerActionModal.action === "delete"
+              ? t.confirmDeleteLedger.replace(
+                  "{name}",
+                  ledgers.find((l) => l.id === ledgerActionModal.targetId)
+                    ?.name || "",
+                )
+              : t.confirmClearLedger.replace(
+                  "{name}",
+                  ledgers.find((l) => l.id === ledgerActionModal.targetId)
+                    ?.name || "",
+                )
+        }
+        onCancel={() => setLedgerActionModal({ isOpen: false })}
         onConfirm={() => {
-          setClearModal({ isOpen: false });
-          clearActiveLedger();
+          const targetId = ledgerActionModal.targetId;
+          if (!targetId) return;
+          if (ledgerActionModal.action === "deleteMaster") {
+            setShowMasterLedger(false);
+            setAiAnalysis("");
+            setLedgerActionModal({ isOpen: false });
+            return;
+          }
+          if (ledgerActionModal.action === "delete") {
+            deleteLedger(targetId);
+          } else {
+            clearLedger(targetId);
+          }
+          setLedgerActionModal({ isOpen: false });
         }}
-        confirmText={t.ledgers.confirm}
+        variant="danger"
+        confirmText={
+          ledgerActionModal.action === "deleteMaster" ||
+          ledgerActionModal.action === "delete"
+            ? lang === "zh"
+              ? "删除"
+              : "Delete"
+            : lang === "zh"
+              ? "清空"
+              : "Clear"
+        }
         cancelText={t.ledgers.cancel}
       />
     </div>
