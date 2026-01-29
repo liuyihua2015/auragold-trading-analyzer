@@ -13,9 +13,14 @@ const generateId = () => {
 interface TradeFormProps {
   onAdd: (record: TradeRecord) => void;
   lang: Language;
+  onSubmitted?: () => void;
 }
 
-export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
+export const TradeForm: React.FC<TradeFormProps> = ({
+  onAdd,
+  lang,
+  onSubmitted,
+}) => {
   const t = translations[lang].form;
   const [formData, setFormData] = useState({
     grams: "0",
@@ -60,6 +65,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
       handlingFeeRate: "0.004",
       desiredPrice: "",
     });
+    onSubmitted?.();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +75,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ onAdd, lang }) => {
   };
 
   return (
-    <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-2xl relative overflow-hidden">
+    <div className="w-full bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
       <h2 className="text-xl font-bold text-[var(--accent)] mb-6 flex items-center gap-2">
         <svg

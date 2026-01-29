@@ -5,12 +5,52 @@ import { translations, Language } from "../translations";
 interface StatsCardsProps {
   summary: TradeSummary;
   lang: Language;
+  onNewTrade?: () => void;
+  newTradeDisabled?: boolean;
 }
 
-export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
+export const StatsCards: React.FC<StatsCardsProps> = ({
+  summary,
+  lang,
+  onNewTrade,
+  newTradeDisabled,
+}) => {
   const t = translations[lang].stats;
+  const tf = translations[lang].form;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <button
+        type="button"
+        onClick={onNewTrade}
+        disabled={!onNewTrade || newTradeDisabled}
+        className="bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-slate-900 border border-transparent p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] text-left"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-slate-900/80 text-[10px] font-black uppercase tracking-widest">
+            {tf.newTrade}
+          </p>
+          <div className="p-2 bg-black/10 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="text-2xl font-black tracking-tight">
+          {lang === "zh" ? "添加一笔" : "Add Trade"}
+        </div>
+      </button>
+
       <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-xl hover:border-[var(--accent)]/50 transition-colors">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[var(--muted)] text-[10px] font-bold uppercase tracking-widest">
@@ -131,7 +171,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ summary, lang }) => {
           </div>
         </div>
         <h3 className="text-3xl font-bold text-[var(--text)] font-mono tracking-tight">
-          $
+          ￥
           {summary.avgCostPrice.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,

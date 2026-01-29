@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { TradeRecord, TradeSummary, Ledger } from "./types";
 import { TradeForm } from "./components/TradeForm";
 import { StatsCards } from "./components/StatsCards";
@@ -75,6 +75,9 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isHistoryFullscreen, setIsHistoryFullscreen] = useState(false);
+  const [isLedgerMenuOpen, setIsLedgerMenuOpen] = useState(false);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const ledgerMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -115,6 +118,19 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("auragold_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (!isLedgerMenuOpen) return;
+    const onPointerDown = (event: MouseEvent | PointerEvent) => {
+      const el = ledgerMenuRef.current;
+      if (!el) return;
+      if (event.target instanceof Node && !el.contains(event.target)) {
+        setIsLedgerMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [isLedgerMenuOpen]);
 
   const activeLedger = useMemo(
     () => ledgers.find((l) => l.id === activeLedgerId) || ledgers[0],
@@ -301,141 +317,8 @@ ${rt.date}: ${new Date().toLocaleString()}
 
   return (
     <div
-      className={`min-h-screen selection:bg-[var(--accent)]/30 flex flex-col ${isHistoryFullscreen ? "gap-6 p-3 md:p-6 w-full" : "gap-8 pb-20 p-4 md:p-8 max-w-7xl mx-auto lg:flex-row"}`}
+      className={`min-h-screen selection:bg-[var(--accent)]/30 flex flex-col ${isHistoryFullscreen ? "gap-6 p-3 md:p-6 w-full" : "gap-8 pb-20 p-4 md:p-8 w-full"}`}
     >
-      {!isHistoryFullscreen && (
-        <aside className="lg:w-64 flex-shrink-0">
-          <div className="bg-[var(--panel)] border border-[var(--border)] rounded-2xl p-6 sticky top-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[var(--accent)] text-xs font-black uppercase tracking-widest">
-                {t.ledgers.title}
-              </h3>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  createLedger();
-                }}
-                className="p-1.5 hover:bg-[var(--row-hover)] rounded-md transition-colors text-[var(--accent-2)] bg-[var(--panel-2)] shadow-sm border border-[var(--border)]"
-                title={t.ledgers.newLedger}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-              <div
-                className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${
-                  activeLedgerId === "master"
-                    ? "bg-[var(--accent)]/10 border-[var(--accent)]/50"
-                    : "bg-[var(--panel-2)] border-transparent hover:border-[var(--border-2)]"
-                }`}
-                onClick={() => setActiveLedgerId("master")}
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div
-                    className={`w-2 h-2 flex-shrink-0 rounded-full ${
-                      activeLedgerId === "master"
-                        ? "bg-[var(--accent)] ring-2 ring-[var(--accent)]/40"
-                        : "bg-[var(--border-2)]"
-                    }`}
-                  ></div>
-                  <span
-                    className={`text-sm font-bold truncate ${
-                      activeLedgerId === "master"
-                        ? "text-[var(--primary-text)]"
-                        : "text-[var(--muted)]"
-                    }`}
-                  >
-                    {t.ledgers.masterName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1"></div>
-              </div>
-              {ledgers.map((l) => (
-                <div
-                  key={l.id}
-                  className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${activeLedgerId === l.id ? "bg-[var(--accent)]/10 border-[var(--accent)]/50" : "bg-[var(--panel-2)] border-transparent hover:border-[var(--border-2)]"}`}
-                  onClick={() => setActiveLedgerId(l.id)}
-                >
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div
-                      className={`w-2 h-2 flex-shrink-0 rounded-full ${activeLedgerId === l.id ? "bg-[var(--accent)] ring-2 ring-[var(--accent)]/40" : "bg-[var(--border-2)]"}`}
-                    ></div>
-                    <span
-                      className={`text-sm font-bold truncate ${activeLedgerId === l.id ? "text-[var(--primary-text)]" : "text-[var(--muted)]"}`}
-                    >
-                      {l.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        renameLedger(l.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-[var(--accent)] transition-all"
-                      title={t.ledgers.rename}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteLedger(l.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-[var(--danger)] transition-all"
-                      title={t.ledgers.delete}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-      )}
-
       <main
         className={`flex-1 min-w-0 ${isHistoryFullscreen ? "flex flex-col min-h-[calc(100vh-48px)]" : ""}`}
       >
@@ -521,6 +404,174 @@ ${rt.date}: ${new Date().toLocaleString()}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <div ref={ledgerMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsLedgerMenuOpen((v) => !v)}
+                  className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg gap-2"
+                  title={lang === "zh" ? "切换账本" : "Switch ledger"}
+                >
+                  <span className="max-w-[180px] truncate">
+                    {activeLedgerId === "master"
+                      ? t.ledgers.masterName
+                      : activeLedger?.name || t.ledger}
+                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+                {isLedgerMenuOpen && (
+                  <div className="absolute left-0 mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-[var(--panel)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden z-30">
+                    <div className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--muted-2)] border-b border-[var(--border)]">
+                      {t.ledgers.title}
+                    </div>
+                    <div className="max-h-[50vh] overflow-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveLedgerId("master");
+                          setIsLedgerMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 flex items-center justify-between gap-3 transition-colors ${
+                          activeLedgerId === "master"
+                            ? "bg-[var(--accent)]/10"
+                            : "hover:bg-[var(--row-hover)]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              activeLedgerId === "master"
+                                ? "bg-[var(--accent)]"
+                                : "bg-[var(--border-2)]"
+                            }`}
+                          />
+                          <span className="text-sm font-bold truncate text-[var(--text)]">
+                            {t.ledgers.masterName}
+                          </span>
+                        </div>
+                      </button>
+                      {ledgers.map((l) => (
+                        <div
+                          key={l.id}
+                          className={`group w-full px-4 py-3 flex items-center justify-between gap-3 transition-colors ${
+                            activeLedgerId === l.id
+                              ? "bg-[var(--accent)]/10"
+                              : "hover:bg-[var(--row-hover)]"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveLedgerId(l.id);
+                              setIsLedgerMenuOpen(false);
+                            }}
+                            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          >
+                            <span
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                activeLedgerId === l.id
+                                  ? "bg-[var(--accent)]"
+                                  : "bg-[var(--border-2)]"
+                              }`}
+                            />
+                            <span className="text-sm font-bold truncate text-[var(--text)]">
+                              {l.name}
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsLedgerMenuOpen(false);
+                                renameLedger(l.id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-2)] hover:text-[var(--accent)] transition-all"
+                              title={t.ledgers.rename}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsLedgerMenuOpen(false);
+                                deleteLedger(l.id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-2)] hover:text-[var(--danger)] transition-all"
+                              title={t.ledgers.delete}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t border-[var(--border)] p-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsLedgerMenuOpen(false);
+                          createLedger();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-[var(--panel-2)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {t.ledgers.newLedger}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={shareReport}
                 className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg gap-2"
@@ -581,20 +632,6 @@ ${rt.date}: ${new Date().toLocaleString()}
               </button>
 
               <button
-                onClick={() => {
-                  if (activeLedgerId === "master") return;
-                  setClearModal({ isOpen: true });
-                }}
-                className={`text-[var(--muted-2)] text-xs font-bold uppercase tracking-widest transition-colors p-2 ${
-                  activeLedgerId === "master"
-                    ? "opacity-40 cursor-not-allowed"
-                    : "hover:text-[var(--danger)]"
-                }`}
-              >
-                {t.clearData}
-              </button>
-
-              <button
                 onClick={runAnalysis}
                 disabled={
                   activeLedgerId === "master" ||
@@ -645,67 +682,24 @@ ${rt.date}: ${new Date().toLocaleString()}
           </header>
         )}
 
-        {!isHistoryFullscreen && <StatsCards summary={summary} lang={lang} />}
+        {!isHistoryFullscreen && (
+          <StatsCards
+            summary={summary}
+            lang={lang}
+            onNewTrade={() => setIsTradeModalOpen(true)}
+            newTradeDisabled={activeLedgerId === "master"}
+          />
+        )}
 
         <div
           className={
-            isHistoryFullscreen
-              ? "flex-1 min-h-0 flex flex-col"
-              : "grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+            isHistoryFullscreen ? "flex-1 min-h-0 flex flex-col" : "space-y-6"
           }
         >
-          {!isHistoryFullscreen && (
-            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-              {activeLedgerId !== "master" ? (
-                <TradeForm onAdd={addRecord} lang={lang} />
-              ) : (
-                <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-2xl shadow-2xl">
-                  <h2 className="text-lg font-bold text-[var(--accent-2)] mb-2">
-                    {t.ledgers.masterName}
-                  </h2>
-                  <p className="text-[var(--muted)] text-sm">
-                    {lang === "zh"
-                      ? "总账本仅展示所有账本的统计，不支持添加或编辑记录。"
-                      : "Master ledger shows global stats only; adding or editing records is disabled."}
-                  </p>
-                </div>
-              )}
-
-              {aiAnalysis && (
-                <div className="bg-[var(--panel)] border border-[var(--accent)]/30 p-6 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-[var(--accent)] font-black text-sm uppercase tracking-widest flex items-center gap-2">
-                      <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></span>
-                      {t.analystReport}
-                    </h4>
-                    <button
-                      onClick={() => setAiAnalysis("")}
-                      className="text-[var(--muted-2)] hover:text-[var(--text)]"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="text-sm text-[var(--muted)] leading-relaxed font-medium whitespace-pre-wrap">
-                    {aiAnalysis}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           <div
-            className={`${isHistoryFullscreen ? "flex-1 min-h-0 flex flex-col" : "lg:col-span-7"}`}
+            className={
+              isHistoryFullscreen ? "flex-1 min-h-0 flex flex-col" : ""
+            }
           >
             <div
               className={`bg-[var(--panel)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-0 ${isHistoryFullscreen ? "flex-1" : ""}`}
@@ -744,49 +738,65 @@ ${rt.date}: ${new Date().toLocaleString()}
                 </div>
               </div>
 
+              {activeLedgerId === "master" && (
+                <div className="p-6">
+                  <p className="text-[var(--muted)] text-sm">
+                    {lang === "zh"
+                      ? "总账本仅展示所有账本统计，不支持添加或编辑记录。"
+                      : "Master ledger shows global stats only; adding or editing records is disabled."}
+                  </p>
+                </div>
+              )}
+
               {activeLedgerId !== "master" && (
                 <div
                   className={`${isHistoryFullscreen ? "flex-1 min-h-0 overflow-auto" : "overflow-x-auto max-h-[70vh] overflow-y-auto"} scroll-smooth`}
                 >
-                  <table className="min-w-[1120px] w-full text-left border-collapse table-fixed">
+                  <table className="min-w-[1440px] w-full text-center border-collapse table-fixed">
                     <colgroup>
-                      <col style={{ width: "180px" }} />
-                      <col style={{ width: "120px" }} />
                       <col style={{ width: "160px" }} />
                       <col style={{ width: "160px" }} />
                       <col style={{ width: "160px" }} />
-                      <col style={{ width: "200px" }} />
-                      <col style={{ width: "220px" }} />
-                      <col style={{ width: "80px" }} />
+                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "160px" }} />
+                      <col style={{ width: "160px" }} />
                     </colgroup>
                     <thead className="sticky top-0 z-10 bg-[var(--panel-2)]">
-                      <tr className="text-[var(--muted-2)] text-[10px] md:text-[11px] font-black uppercase tracking-widest">
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                      <tr className="text-[var(--muted-2)] text-[10px] md:text-[11px] font-black uppercase tracking-widest text-center">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                          {lang === "zh" ? "序号" : "#"}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.timeline}
                         </th>
                         <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.volume}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.cost}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.sell}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.fee}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.actualNet}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
                           {t.table.projectedNet}
                         </th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]"></th>
+                        <th className="px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)] text-center">
+                          {lang === "zh" ? "操作" : "Action"}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
-                      {(activeLedger?.records || []).map((record) => {
+                      {(activeLedger?.records || []).map((record, index) => {
                         const feeAmount =
                           record.sellingPrice *
                           record.handlingFeeRate *
@@ -796,7 +806,12 @@ ${rt.date}: ${new Date().toLocaleString()}
                             key={record.id}
                             className="hover:bg-[var(--row-hover)] transition-all group text-xs md:text-sm"
                           >
-                            <td className="px-4 md:px-6 py-4 md:py-5 whitespace-nowrap">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                              <span className="text-sm font-black text-[var(--muted)] font-mono">
+                                {index + 1}
+                              </span>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                               <div className="text-sm text-[var(--text)] font-semibold">
                                 {new Date(
                                   record.timestamp,
@@ -817,20 +832,20 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 {record.grams.toFixed(2)}g
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                               <div className="text-sm font-black text-[var(--danger)] font-mono">
-                                ${record.costPrice.toFixed(2)}
+                                ￥{record.costPrice.toFixed(2)}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                               <div className="text-sm font-black text-[var(--success)] font-mono">
-                                ${record.sellingPrice.toFixed(2)}
+                                ￥{record.sellingPrice.toFixed(2)}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5">
-                              <div className="flex flex-col gap-0.5">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                              <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-sm font-black text-[var(--muted)] font-mono">
-                                  $
+                                  ￥
                                   {feeAmount.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
@@ -841,25 +856,25 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                               <div
                                 className={`text-sm font-black font-mono ${record.actualProfit >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
                               >
-                                $
+                                ￥
                                 {record.actualProfit.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5">
-                              <div className="flex flex-col gap-0.5">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
+                              <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-[10px] text-[var(--info)] font-bold uppercase tracking-tighter opacity-70">
-                                  {t.table.target}: $
+                                  {t.table.target}: ￥
                                   {record.desiredPrice.toFixed(2)}
                                 </span>
                                 <span className="text-sm font-black text-[var(--info)] font-mono">
-                                  $
+                                  ￥
                                   {record.projectedProfit.toLocaleString(
                                     undefined,
                                     {
@@ -870,7 +885,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 md:py-5 text-right">
+                            <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                               <button
                                 onClick={() =>
                                   setDeleteModal({
@@ -878,7 +893,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                                     targetId: record.id,
                                   })
                                 }
-                                className="text-[var(--muted-2)] hover:text-[var(--danger)] p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all scale-90 hover:scale-110"
+                                className="text-[var(--muted-2)] hover:text-[var(--danger)] p-2 opacity-100 transition-all scale-90 hover:scale-110"
                                 aria-label={
                                   lang === "zh" ? "删除记录" : "Delete record"
                                 }
@@ -905,7 +920,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                       })}
                       {(!activeLedger || activeLedger.records.length === 0) && (
                         <tr>
-                          <td colSpan={8} className="px-6 py-24 text-center">
+                          <td colSpan={9} className="px-6 py-24 text-center">
                             <div className="flex flex-col items-center opacity-40">
                               <div className="w-16 h-16 bg-[var(--panel-2)] rounded-full flex items-center justify-center mb-4">
                                 <svg
@@ -936,8 +951,74 @@ ${rt.date}: ${new Date().toLocaleString()}
               )}
             </div>
           </div>
+          {!isHistoryFullscreen && aiAnalysis && (
+            <div className="bg-[var(--panel)] border border-[var(--accent)]/30 p-6 rounded-2xl shadow-xl animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-[var(--accent)] font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></span>
+                  {t.analystReport}
+                </h4>
+                <button
+                  onClick={() => setAiAnalysis("")}
+                  className="text-[var(--muted-2)] hover:text-[var(--text)]"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="text-sm text-[var(--muted)] leading-relaxed font-medium whitespace-pre-wrap">
+                {aiAnalysis}
+              </div>
+            </div>
+          )}
         </div>
       </main>
+
+      {isTradeModalOpen && activeLedgerId !== "master" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setIsTradeModalOpen(false);
+          }}
+        >
+          <div className="relative w-full max-w-2xl">
+            <button
+              type="button"
+              onClick={() => setIsTradeModalOpen(false)}
+              className="absolute -top-3 -right-3 bg-[var(--panel)] border border-[var(--border)] p-2 rounded-xl text-[var(--muted)] hover:text-[var(--text)] shadow-xl"
+              aria-label={lang === "zh" ? "关闭" : "Close"}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <TradeForm
+              onAdd={addRecord}
+              lang={lang}
+              onSubmitted={() => setIsTradeModalOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {showToast && (
