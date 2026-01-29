@@ -4,6 +4,10 @@ import { TradeForm } from "./components/TradeForm";
 import { StatsCards } from "./components/StatsCards";
 import { InputModal } from "./components/InputModal";
 import { ConfirmModal } from "./components/ConfirmModal";
+import {
+  ShareReportModal,
+  ShareReportTemplate,
+} from "./components/ShareReportModal";
 import { analyzeTrades } from "./services/geminiService";
 import { translations, Language } from "./translations";
 
@@ -77,6 +81,12 @@ export default function App() {
   const [isHistoryFullscreen, setIsHistoryFullscreen] = useState(false);
   const [isLedgerMenuOpen, setIsLedgerMenuOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareTemplate, setShareTemplate] =
+    useState<ShareReportTemplate>("glass");
+  const [shareGeneratedAt, setShareGeneratedAt] = useState(() =>
+    new Date().toLocaleString(lang === "zh" ? "zh-CN" : "en-US"),
+  );
   const ledgerMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [modalConfig, setModalConfig] = useState<{
@@ -271,32 +281,67 @@ export default function App() {
     }
   };
 
-  const shareReport = () => {
-    const rt = t.report;
+  const sharePayload = useMemo(() => {
     const name =
       activeLedgerId === "master"
         ? t.ledgers.masterName
         : activeLedger?.name || t.ledger;
-    const count =
+    const txCount =
       activeLedgerId === "master"
         ? ledgers.reduce((acc, l) => acc + l.records.length, 0)
         : activeLedger?.records.length || 0;
+    return {
+      ledgerName: name,
+      txCount,
+      generatedAt: shareGeneratedAt,
+      labels: t.report,
+    };
+  }, [
+    activeLedger?.name,
+    activeLedger?.records.length,
+    activeLedgerId,
+    ledgers,
+    shareGeneratedAt,
+    t.ledger,
+    t.ledgers.masterName,
+    t.report,
+  ]);
+
+  const buildShareReportText = (generatedAt: string) => {
+    const rt = t.report;
     const report = `
-[${name}] ${rt.title}
+[${sharePayload.ledgerName}] ${rt.title}
 -----------------------------------
 - ${rt.actual}: ￥${summary.totalProfit.toFixed(2)}
 - ${rt.projected}: ￥${summary.totalProjectedProfit.toFixed(2)}
 - ${rt.diff}: ￥${summary.profitDifference.toFixed(2)}
 - ${rt.volume}: ${summary.totalGrams.toFixed(2)}g
-- ${rt.count}: ${count}
+- ${rt.count}: ${sharePayload.txCount}
 -----------------------------------
-${rt.date}: ${new Date().toLocaleString()}
+${rt.date}: ${generatedAt}
     `.trim();
+    return report;
+  };
 
-    navigator.clipboard.writeText(report).then(() => {
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    });
+  const copyShareReport = () => {
+    const report = buildShareReportText(shareGeneratedAt);
+    navigator.clipboard
+      .writeText(report)
+      .then(() => {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      })
+      .catch(() => {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      });
+  };
+
+  const openShareModal = () => {
+    setShareGeneratedAt(
+      new Date().toLocaleString(lang === "zh" ? "zh-CN" : "en-US"),
+    );
+    setIsShareModalOpen(true);
   };
 
   const runAnalysis = async () => {
@@ -573,7 +618,7 @@ ${rt.date}: ${new Date().toLocaleString()}
                 )}
               </div>
               <button
-                onClick={shareReport}
+                onClick={openShareModal}
                 className="flex items-center bg-[var(--panel)] border border-[var(--border)] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-[var(--muted)] hover:text-[var(--accent)] transition-colors shadow-lg gap-2"
               >
                 <svg
@@ -1019,6 +1064,17 @@ ${rt.date}: ${new Date().toLocaleString()}
           </div>
         </div>
       )}
+
+      <ShareReportModal
+        isOpen={isShareModalOpen}
+        i18n={t.shareModal}
+        template={shareTemplate}
+        onTemplateChange={setShareTemplate}
+        summary={summary}
+        payload={sharePayload}
+        onCopyText={copyShareReport}
+        onClose={() => setIsShareModalOpen(false)}
+      />
 
       {/* Toast Notification */}
       {showToast && (
